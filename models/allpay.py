@@ -26,6 +26,9 @@ _logger = logging.getLogger(__name__)
 
 import sys
 
+import string
+import random
+
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -153,6 +156,9 @@ class AcquirerallPay(osv.Model):
         fees = (percentage / 100.0 * amount + fixed) / (1 - percentage / 100.0)
         return fees
 
+    def _trade_no_generator(size=6, chars=string.ascii_uppercase + string.digits):
+        return ''.join(random.choice(chars) for _ in range(size))
+
     def allpay_form_generate_values(self, cr, uid, id, partner_values, tx_values, context=None):
         base_url = self.pool['ir.config_parameter'].get_param(cr, SUPERUSER_ID, 'web.base.url')
         acquirer = self.browse(cr, uid, id, context=context)
@@ -160,11 +166,16 @@ class AcquirerallPay(osv.Model):
         amount = int(round(tx_values['amount']))
         if amount <= 0:
             amount = 1
-	
+
+        # 產生亂數編號
+        #allpay_trade_no = _trade_no_generator()	
+        allpay_trade_no = tx_values['reference']  + ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+
+	_logger.debug('Allpay Trade No: %s' % (allpay_trade_no))
         allpay_tx_values = dict(tx_values)
         allpay_tx_values.update({
             'MerchantID': acquirer.allpay_merchant_id,
-            'MerchantTradeNo': tx_values['reference'],
+            'MerchantTradeNo': allpay_trade_no,
             'MerchantTradeDate': tx_values.get('date_create', date_create),
             'PaymentType': 'aio',
             'TotalAmount': amount,
@@ -180,7 +191,7 @@ class AcquirerallPay(osv.Model):
         to_sign = {}
         to_sign.update({
             'MerchantID': acquirer.allpay_merchant_id,
-            'MerchantTradeNo': tx_values['reference'],
+            'MerchantTradeNo': allpay_trade_no,
             'MerchantTradeDate': tx_values.get('date_create', date_create),
             'PaymentType': 'aio',
             'TotalAmount': amount,
@@ -205,7 +216,6 @@ class AcquirerallPay(osv.Model):
     def allpay_get_form_action_url(self, cr, uid, id, context=None):
         acquirer = self.browse(cr, uid, id, context=context)
         return self._get_allpay_urls(cr, uid, acquirer.environment, context=context)['allpay_url']
-
 
 class TxallPay(osv.Model):
     _inherit = 'payment.transaction'
@@ -270,3 +280,4 @@ class TxallPay(osv.Model):
             _logger.info(error)
             data.update(state='error', state_message=error)
             return tx.write(data)
+
