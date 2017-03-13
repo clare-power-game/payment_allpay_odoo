@@ -121,6 +121,7 @@ class AcquirerallPay(osv.Model):
         'allpay_merchant_id': fields.char('allPay Merchant ID', required_if_provider='allpay'),
         'allpay_hash_key': fields.char('allPay Hash Key', required_if_provider='allpay'),
         'allpay_hash_iv': fields.char('allPay Hash IV', required_if_provider='allpay'),
+        'allpay_trade_no': fields.char('allPay Trade No', required_if_provider='allpay'),
     }
 
     _defaults = {
